@@ -1,0 +1,113 @@
+<script src="p5.ble.min.js" type="text/javascript"></script>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Write notifications</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/addons/p5.dom.min.js"></script>
+    <script
+            src="https://unpkg.com/p5ble@0.0.7/dist/p5.ble.js"
+            type="text/javascript"
+    ></script>
+</head>
+
+<body>
+<script>
+
+// The serviceUuid must match the serviceUuid of the device you would like to connect
+let NAME = "Somnia";
+let serviceUuid = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+let UUID_WRITE = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+let UUID_READ = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+let myCharacteristic;
+let myValue = 0;
+let myBLE;
+
+let intensity_slider;
+let frequency_slider;
+let time_slider;
+let time = 0;
+let time_list = [];
+let intensity_list = [];
+let intensity_value;
+let frequency_value;
+let time_value;
+
+function setup() {
+  myBLE = new p5ble();
+
+  // Create a 'Connect' button
+  const connectButton = createButton('Connect')
+  connectButton.mousePressed(connectToBle);
+  connectButton.position(140, 40);
+
+  createCanvas(1250, 700);
+  background(202, 222, 238);
+
+  let intensity_header = 'Intensity';
+  text(intensity_header, 133, 100);
+  intensity_slider = createSlider(120, 150, 0, 1);
+  intensity_slider.position(75, 120);
+  intensity_slider.style('width', '170px');
+
+  let frequency_header = 'Frequency';
+  text(frequency_header, 128, 200);
+  frequency_slider = createSlider(0, 2, 0, 0.1);
+  frequency_slider.position(75, 220);
+  frequency_slider.style('width', '170px');
+
+  let time_header = "Time"
+  text(time_header, 144, 300);
+  time_slider = createSlider(0, 30, 0, 5);
+  time_slider.position(75, 320);
+  time_slider.style('width', '170px');
+
+  button = createButton('Sleep');
+  button.position(140, 400);
+  button.mousePressed(times);
+}
+
+
+function connectToBle() {
+  // Connect to a device by passing the service UUID
+  myBLE.connect(serviceUuid, gotCharacteristics);
+}
+
+function gotCharacteristics(error, characteristics) {
+  // Set the first characteristic as myCharacteristic
+  myCharacteristic = characteristics[0];
+}
+
+
+function times() {
+  intensity_value = intensity_slider.value();
+  frequency_value = frequency_slider.value();
+  time_value = time_slider.value();
+
+  let console_output = setInterval(check_and_print, 100);
+  let flag = false;
+
+  function check_and_print() {
+    if (time <= time_value*60)
+      {
+        if ((time % 2) <= 0.0000000005) {
+          flag = !flag;
+        }
+        if (flag === true)
+        {
+          myBLE.write(myCharacteristic, intensity_value*sin(((2*PI)/(1/frequency_value))*time));
+        }
+        time += 0.1;
+      }
+    else
+      {
+        clearInterval(console_output);
+      }
+  }
+}
+
+</script>
+</body>
+</html>
