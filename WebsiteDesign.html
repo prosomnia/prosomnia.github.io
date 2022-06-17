@@ -1,0 +1,257 @@
+<script src="p5.ble.min.js" type="text/javascript"></script>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>send signals</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/addons/p5.dom.min.js"></script>
+    <script
+            src="https://unpkg.com/p5ble@0.0.7/dist/p5.ble.js"
+            type="text/javascript"
+    ></script>
+</head>
+
+<body>
+<script>
+
+
+const serviceUuid = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
+
+let writeCharacteristic,notifyCharacteristic;
+let myValue = 0;
+let myBLE;
+
+let intensity_floor_slider;
+let intensity_ceiling_slider;
+let time_slider;
+let time = 0;
+let time_list = [];
+let intensity_list = [];
+let intensity_floor_value = 40;
+let intensity_ceiling_value = 80;
+let time_value;
+var writeArr = new Uint8Array([25, 0, 0, 0]);
+let current_strength;
+let abs_val_strength;
+var isConnected = 0;
+let readArr = [];
+let gyro1 = [];
+let gyro2 = [];
+let gyro3 = [];
+let gyro4 = [];
+let frequency_value;
+let sweep_type = '';
+
+function preload(){
+  logo = loadImage("logo.png")
+}
+
+function reset() {
+  intensity_floor_value = 0;
+  intensity_ceiling_value = 0;
+  time = 0;
+}
+
+function sweep_set_linear() {
+  sweep_type = 'linear';
+}
+
+function sweep_set_sin() {
+  sweep_type = 'sin';
+}
+
+function times() {
+  time_value = time_slider.value();
+
+  writeArr = [50, 0, intensity_floor_value, intensity_ceiling_value];
+  writeToBle();
+
+  let console_output = setInterval(check_and_print, 250);
+
+  function check_and_print() {
+    if (isConnected === 1) {
+        if (sweep_type === 'sin') {
+           writeArr = [40, 0, time_value, 0]
+        }
+        if (sweep_type === 'linear') {
+           writeArr = [30, 0, time_value, 0]
+        }
+      }
+    else
+      {
+        clearInterval(console_output);
+      }
+    }
+  }
+
+function setup() {
+  // Create a p5ble class
+  myBLE = new p5ble();
+
+  createCanvas(1512, 982);
+  background(202, 222, 238);
+
+  intensity_floor_slider = createSlider(40, 80, 0, 1);
+  intensity_floor_slider.position(125, 320);
+  intensity_floor_slider.style('width', '170px');
+
+  intensity_ceiling_slider = createSlider(40, 80, 0, 1);
+  intensity_ceiling_slider.position(125, 420);
+  intensity_ceiling_slider.style('width', '170px');
+
+  time_slider = createSlider(1, 4, 0, 1);
+  time_slider.position(125, 520);
+  time_slider.style('width', '170px');
+
+  sin_wave_button = createButton('Sine Wave');
+  sin_wave_button.position(125, 600);
+  sin_wave_button.mousePressed(sweep_set_sin);
+
+  linear_button = createButton('Linear Sweep');
+  linear_button.position(225, 600);
+  linear_button.mousePressed(sweep_set_linear);
+
+  // Create 'Sleep' button
+  sleep_button = createButton('Sleep');
+  sleep_button.position(650, 780);
+  sleep_button.mousePressed(times);
+
+  reset_button = createButton('Reset');
+  reset_button.position(825, 780);
+  reset_button.mousePressed(reset);
+
+  // Create a 'Connect' button
+  const connectButton = createButton('Connect')
+  connectButton.mousePressed(connectToBle);
+  connectButton.position(450, 110);
+
+  // Create a 'Stop' button
+  const stopButton = createButton('Stop Notifications')
+  stopButton.mousePressed(stopNotifications);
+  stopButton.position(970, 110);
+
+  let intensity1_header = 'Minimum Intensity';
+  text(intensity1_header, 160, 300);
+  let intensity2_header = 'Maximum Intensity';
+  text(intensity2_header, 160, 400);
+  let time_header = "Time"
+  text(time_header, 194, 500);
+
+  image(logo, 570, 342, 350, 300);
+  text('Gyrometer 1', 1190, 190);
+  text('Gyrometer 2', 1190, 290);
+  text('Gyrometer 3', 1190, 390);
+  text('Gyrometer 4', 1190, 490);
+}
+
+function connectToBle() {
+  // Connect to a device by passing the service UUID
+  myBLE.connect(serviceUuid, gotCharacteristics);
+  isConnected = 1;
+  writeToBle();
+}
+
+// A function that will be called once got characteristics
+function gotCharacteristics(error, characteristics) {
+  if (error) console.log('error: ', error);
+  console.log('characteristics: ', characteristics);
+  writeCharacteristic = characteristics[0];
+  notifyCharacteristic = characteristics[1];
+  myBLE.startNotifications(notifyCharacteristic, handleNotifications,'custom');
+}
+
+// A function that will be called once got characteristics
+function handleNotifications(data) {
+  let numVals = data.byteLength/2 ;
+  var readarr = new Int16Array(numVals);
+  for( var i=0; i < numVals; i++){
+      readarr[i] = data.getInt16(i*2,true);
+  }
+  console.log('data: ', readarr);
+  readArr.push(readarr);
+}
+
+function writeToBle() {
+  try{
+    writeCharacteristic.writeValue(writeArr);
+  }
+  catch(err){
+    isConnected = 0;
+  }
+  console.log(writeArr);
+}
+
+function stopNotifications() {
+  myBLE.stopNotifications(notifyCharacteristic);
+  isConnected = 0;
+  make_csv();
+}
+
+function make_csv() {
+    let csvContent = "data:text/csv;charset=utf-8,"
+    + readArr.map(e => e.join(",")).join("\n");
+    var encodedUri = encodeURI(csvContent);
+    window.open(encodedUri);
+}
+
+// Circle class
+function Circle(x, y, this_arr) {
+  this.x = Number(x);
+  this.y = Number(y);
+  this.this_arr = this_arr;
+  this.speed = 2;
+  this.diameter = Number(2);
+
+  this.move = function() {
+    this.x -= this.speed;
+  };
+
+  if(this.x <= 1056){
+	this.this_arr.shift();
+  }
+
+  this.display = function() {
+    ellipse(this.x, this.y, this.diameter);
+    }
+ }
+
+function draw() {
+  gyro1.push(new Circle(1428, readArr[1], gyro1));
+  gyro2.push(new Circle(1428, 330, gyro2));
+  gyro3.push(new Circle(1428, 430, gyro3));
+  gyro4.push(new Circle(1428, 530, gyro4));
+
+  for(var i = 0; i < gyro1.length; i++){
+	gyro1[i].move();
+    if (gyro1[i].x >= 1056) {
+      gyro1[i].display();
+    }
+  }
+
+  for(var j = 0; j < gyro2.length; j++){
+	gyro2[j].move();
+	if (gyro2[j].x >= 1056) {
+      gyro2[j].display();
+    }
+  }
+
+  for(var k = 0; k < gyro3.length; k++){
+	gyro3[k].move();
+	if (gyro3[k].x >= 1056) {
+      gyro3[k].display();
+    }
+  }
+
+  for(var l = 0; l < gyro4.length; l++){
+	gyro4[l].move();
+	if (gyro4[l].x >= 1056) {
+      gyro4[l].display();
+    }
+  }
+}
+
+</script>
+</body>
+</html>
