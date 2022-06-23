@@ -32,10 +32,11 @@ let intensity_list = [];
 let intensity_floor_value = 40;
 let intensity_ceiling_value = 80;
 let time_value;
-var writeArr = new Uint8Array([25, 0, 0, 0]);
+var writeArr = new Uint8Array([40, 0, 1, 0]);
 let current_strength;
 let abs_val_strength;
 var isConnected = 0;
+let small_read_arr;
 let readArr = [];
 let gyro1 = [];
 let gyro2 = [];
@@ -43,6 +44,7 @@ let gyro3 = [];
 let gyro4 = [];
 let frequency_value;
 let sweep_type = '';
+let sleep_on = false;
 
 function preload(){
   logo = loadImage("logo.png")
@@ -52,6 +54,8 @@ function reset() {
   intensity_floor_value = 0;
   intensity_ceiling_value = 0;
   time = 0;
+  writeArr = [50, 0, intensity_floor_value, intensity_ceiling_value];
+  writeToBle();
 }
 
 function sweep_set_linear() {
@@ -64,27 +68,24 @@ function sweep_set_sin() {
 
 function times() {
   time_value = time_slider.value();
+  intensity_floor_value = intensity_floor_slider.value();
+  intensity_ceiling_value = intensity_ceiling_slider.value();
 
-  writeArr = [50, 0, intensity_floor_value, intensity_ceiling_value];
+  writeArr = [25, 0, 0, 0];
   writeToBle();
 
-  let console_output = setInterval(check_and_print, 250);
+  writeArr = [50, 0, 40, 80];
+  writeToBle();
 
-  function check_and_print() {
-    if (isConnected === 1) {
-        if (sweep_type === 'sin') {
-           writeArr = [40, 0, time_value, 0]
-        }
-        if (sweep_type === 'linear') {
-           writeArr = [30, 0, time_value, 0]
-        }
-      }
-    else
-      {
-        clearInterval(console_output);
-      }
+  if (sweep_type == 'sin') {
+    writeArr = [40, 0, 2, 0];
+   }
+  if (sweep_type == 'linear') {
+    writeArr = [30, 0, 1, 0];
     }
-  }
+  sleep_on = true;
+  writeToBle();
+}
 
 function setup() {
   // Create a p5ble class
@@ -150,7 +151,6 @@ function connectToBle() {
   // Connect to a device by passing the service UUID
   myBLE.connect(serviceUuid, gotCharacteristics);
   isConnected = 1;
-  writeToBle();
 }
 
 // A function that will be called once got characteristics
@@ -169,8 +169,12 @@ function handleNotifications(data) {
   for( var i=0; i < numVals; i++){
       readarr[i] = data.getInt16(i*2,true);
   }
+  small_read_arr = readarr;
   console.log('data: ', readarr);
   readArr.push(readarr);
+  if(sleep_on === true){
+    update_graphs();
+  }
 }
 
 function writeToBle() {
@@ -217,11 +221,13 @@ function Circle(x, y, this_arr) {
     }
  }
 
-function draw() {
-  gyro1.push(new Circle(1428, readArr[1], gyro1));
-  gyro2.push(new Circle(1428, 330, gyro2));
-  gyro3.push(new Circle(1428, 430, gyro3));
-  gyro4.push(new Circle(1428, 530, gyro4));
+function update_graphs() {
+  gyro1.push(new Circle(1428, small_read_arr[1], gyro1));
+  console.log(writeArr);
+  console.log(sleep_on);
+<!--  gyro2.push(new Circle(1428, 330, gyro2));-->
+<!--  gyro3.push(new Circle(1428, 430, gyro3));-->
+<!--  gyro4.push(new Circle(1428, 530, gyro4));-->
 
   for(var i = 0; i < gyro1.length; i++){
 	gyro1[i].move();
@@ -248,7 +254,7 @@ function draw() {
 	gyro4[l].move();
 	if (gyro4[l].x >= 1056) {
       gyro4[l].display();
-    }
+     }
   }
 }
 
