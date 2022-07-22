@@ -60,7 +60,7 @@ function sweep_set_sin() {
 }
 
 function times() {
-    resetDevice();
+    configDevice();
 
     setTimeout(setIntensity, 500);
 
@@ -77,8 +77,15 @@ function times() {
     sleep_on = true;
 }
 
-
 function resetDevice(){
+    writeArr[0] = 60 ;
+    writeArr[1] = 0;
+    writeArr[2] = 0;
+    writeArr[3] = 0;
+    writeToBle();
+}
+
+function configDevice(){
     writeArr[0] = 25;
     writeArr[1] = 0;
     writeArr[2] = 0;
@@ -97,7 +104,7 @@ function setIntensity(){
 function setSin(){
     writeArr[0] = 40;
     writeArr[1] = 0;
-    writeArr[2] = 1;
+    writeArr[2] = time_value;
     writeArr[3] = 0;
     writeToBle();
 }
