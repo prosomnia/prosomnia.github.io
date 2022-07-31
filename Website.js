@@ -105,7 +105,7 @@ function setSin(){
     writeArr[0] = 40;
     writeArr[1] = 0;
     writeArr[2] = time_value;
-    writeArr[3] = 0;
+    writeArr[3] = 2; //change roll to pitch
     writeToBle();
 }
 
