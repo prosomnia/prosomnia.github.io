@@ -86,7 +86,7 @@ function resetDevice(){
 }
 
 function configDevice(){
-    writeArr[0] = 25;
+    writeArr[0] = 26;
     writeArr[1] = 0;
     writeArr[2] = 0;
     writeArr[3] = 0;
