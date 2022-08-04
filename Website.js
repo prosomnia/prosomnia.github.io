@@ -86,7 +86,7 @@ function resetDevice(){
 }
 
 function configDevice(){
-    writeArr[0] = 26;
+    writeArr[0] = 25; //26 for pitch
     writeArr[1] = 0;
     writeArr[2] = 0;
     writeArr[3] = 0;
@@ -105,7 +105,7 @@ function setSin(){
     writeArr[0] = 40;
     writeArr[1] = 0;
     writeArr[2] = time_value;
-    writeArr[3] = 2; //change roll to pitch
+    writeArr[3] = 0; //change roll to pitch 0 - 2
     writeToBle();
 }
 
